@@ -1,0 +1,278 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;****************** Lab1.s ***************
+    2 00000000         ; Program initially written by: Yerraballi and Valvano
+    3 00000000         ; Author: Luigi Medrano
+    4 00000000         ; Date Created: 1/15/2018 
+    5 00000000         ; Last Modified: 9/7/2022
+    6 00000000         ; Brief description of the program: Solution to Lab1
+    7 00000000         ; The objective of this system is to implement a parity 
+                       system
+    8 00000000         ; Hardware connections: 
+    9 00000000         ;  One output is positive logic, 1 turns on the LED, 0 t
+                       urns off the LED
+   10 00000000         ;  Three inputs are positive logic, meaning switch not p
+                       ressed is 0, pressed is 1
+   11 00000000 400073FC 
+                       GPIO_PORTD_DATA_R
+                               EQU              0x400073FC
+   12 00000000 40007400 
+                       GPIO_PORTD_DIR_R
+                               EQU              0x40007400
+   13 00000000 4000751C 
+                       GPIO_PORTD_DEN_R
+                               EQU              0x4000751C
+   14 00000000 400243FC 
+                       GPIO_PORTE_DATA_R
+                               EQU              0x400243FC
+   15 00000000 40024400 
+                       GPIO_PORTE_DIR_R
+                               EQU              0x40024400
+   16 00000000 4002451C 
+                       GPIO_PORTE_DEN_R
+                               EQU              0x4002451C
+   17 00000000 400FE608 
+                       SYSCTL_RCGCGPIO_R
+                               EQU              0x400FE608
+   18 00000000                 PRESERVE8
+   19 00000000                 AREA             Data, ALIGN=2
+   20 00000000         ;Put following in RAM, aligned to 32-bits
+   21 00000000         ; No global variables needed for Lab 1
+   22 00000000                 AREA             |.text|, CODE, READONLY, ALIGN=
+2
+   23 00000000         ;Put following in ROM, aligned to 32-bits 
+   24 00000000                 THUMB
+   25 00000000                 EXPORT           EID
+   26 00000000 6C 6D 34 
+              35 35 36 
+              32 00    EID     DCB              "lm45562",0 ;replace abc123 wit
+                                                            h your EID
+   27 00000008                 EXPORT           RunGrader
+   28 00000008                 ALIGN            4
+   29 00000008 00000001 
+                       RunGrader
+                               DCD              1           ; change to nonzero
+                                                             when ready for gra
+                                                            ding
+   30 0000000C         
+   31 0000000C                 EXPORT           Lab1
+   32 0000000C         Lab1
+   33 0000000C         ;Initializations
+   34 0000000C 4814            LDR              R0, =SYSCTL_RCGCGPIO_R ; need t
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                                                            o turn on clock onc
+                                                            e 
+   35 0000000E 6801            LDR              R1, [R0]
+   36 00000010 F041 0110       ORR              R1, R1, #0x10 ;turns on the clo
+                                                            ck for Port E
+   37 00000014 6001            STR              R1, [R0]
+   38 00000016         
+   39 00000016 BF00            NOP
+   40 00000018 BF00            NOP                          ; wait for clock to
+                                                             stabalize
+   41 0000001A         
+   42 0000001A         ;CLOCK INIT IS DONE!
+   43 0000001A         
+   44 0000001A         ;define inputs and outputs (DIR)
+   45 0000001A 4812            LDR              R0, =GPIO_PORTE_DIR_R ;READ
+   46 0000001C 6801            LDR              R1, [R0]    ; READ
+   47 0000001E F041 0120       ORR              R1, #0x20   ; sets bit 5
+   48 00000022 F021 0107       BIC              R1, #0x07   ;PE 0, 1, & 2 input
+                                                            s
+   49 00000026 6001            STR              R1, [R0]    ;WRITE
+   50 00000028         
+   51 00000028         ;Digital Enable for inputs and outputs (DEN)
+   52 00000028 480F            LDR              R0, =GPIO_PORTE_DEN_R
+   53 0000002A 6801            LDR              R1, [R0]    ;LOAD UNSIGNED 8-BI
+                                                            TS 
+   54 0000002C F041 0127       ORR              R1, #0x27   ;SET BITS TO ENABLE
+                                                             SELECT PINS IN POR
+                                                            T E
+   55 00000030 6001            STR              R1, [R0]    ;STORE LEAST SIG. 8
+                                                            -BIT 
+   56 00000032         ;start of the loop, all configurations need to be made t
+                       o each pin before starting this.
+   57 00000032         loop
+   58 00000032         ;input, calculate, output  
+   59 00000032 480E            LDR              R0, =GPIO_PORTE_DATA_R
+   60 00000034 6801            LDR              R1, [R0]
+   61 00000036 F001 0201       AND              R2, R1, #1  ; SELECTS PE0
+   62 0000003A F001 0302       AND              R3, R1, #2  ; SELECTS PE1
+   63 0000003E F001 0404       AND              R4, R1, #4  ; SELECTS PE2
+   64 00000042 EA4F 0242       LSL              R2, R2, #1  ;SHIFTS R2 TO LEFT 
+                                                            BY 1
+   65 00000046 EA82 0203       EOR              R2, R2, R3  ; TOGGLE R2 WITH R3
+                                                            
+   66 0000004A EA4F 0242       LSL              R2, R2, #1  ; SHIFT R2 TO THE L
+                                                            EFT ONCE 
+   67 0000004E EA82 0204       EOR              R2, R2, R4  ; TOGGLE R2 WITH R4
+                                                            
+   68 00000052 F082 32FF       EOR              R2, #-1     ; flips bit with EO
+                                                            R in order to get o
+                                                            dd parity.
+   69 00000056 EA4F 02C2       LSL              R2, R2, #3  ; LEFT SHIFT R2 BY 
+                                                            THREE BITS
+   70 0000005A 6002            STR              R2, [R0]    ; end of program wh
+                                                            ere all data is res
+                                                            tored to give the r
+                                                            esult to LED before
+                                                             looping back.
+   71 0000005C E7E9            B                loop        ;branch statement b
+                                                            ack to the top of l
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+                                                            oop in order to run
+                                                             until stopped. 
+   72 0000005E 00 00           ALIGN                        ; make sure the end
+                                                             of this section is
+                                                             aligned
+   73 00000060                 END                          ; end of file
+              400FE608 
+              40024400 
+              4002451C 
+              400243FC 
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4 --apcs=interw
+ork --depend=.\lab1.d -o.\lab1.o -I.\RTE\_Lab1 -IC:\Users\luigi\AppData\Local\A
+rm\Packs\ARM\CMSIS\5.9.0\CMSIS\Core\Include -IC:\Users\luigi\AppData\Local\Arm\
+Packs\Keil\TM4C_DFP\1.1.0\Device\Include\TM4C123 --predefine="__EVAL SETA 1" --
+predefine="__UVISION_VERSION SETA 534" --predefine="_RTE_ SETA 1" --predefine="
+TM4C123GH6PM SETA 1" --predefine="_RTE_ SETA 1" --list=.\lab1.lst Lab1.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+Data 00000000
+
+Symbol: Data
+   Definitions
+      At line 19 in file Lab1.s
+   Uses
+      None
+Comment: Data unused
+1 symbol
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+.text 00000000
+
+Symbol: .text
+   Definitions
+      At line 22 in file Lab1.s
+   Uses
+      None
+Comment: .text unused
+EID 00000000
+
+Symbol: EID
+   Definitions
+      At line 26 in file Lab1.s
+   Uses
+      At line 25 in file Lab1.s
+Comment: EID used once
+Lab1 0000000C
+
+Symbol: Lab1
+   Definitions
+      At line 32 in file Lab1.s
+   Uses
+      At line 31 in file Lab1.s
+Comment: Lab1 used once
+RunGrader 00000008
+
+Symbol: RunGrader
+   Definitions
+      At line 29 in file Lab1.s
+   Uses
+      At line 27 in file Lab1.s
+Comment: RunGrader used once
+loop 00000032
+
+Symbol: loop
+   Definitions
+      At line 57 in file Lab1.s
+   Uses
+      At line 71 in file Lab1.s
+Comment: loop used once
+5 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+GPIO_PORTD_DATA_R 400073FC
+
+Symbol: GPIO_PORTD_DATA_R
+   Definitions
+      At line 11 in file Lab1.s
+   Uses
+      None
+Comment: GPIO_PORTD_DATA_R unused
+GPIO_PORTD_DEN_R 4000751C
+
+Symbol: GPIO_PORTD_DEN_R
+   Definitions
+      At line 13 in file Lab1.s
+   Uses
+      None
+Comment: GPIO_PORTD_DEN_R unused
+GPIO_PORTD_DIR_R 40007400
+
+Symbol: GPIO_PORTD_DIR_R
+   Definitions
+      At line 12 in file Lab1.s
+   Uses
+      None
+Comment: GPIO_PORTD_DIR_R unused
+GPIO_PORTE_DATA_R 400243FC
+
+Symbol: GPIO_PORTE_DATA_R
+   Definitions
+      At line 14 in file Lab1.s
+   Uses
+      At line 59 in file Lab1.s
+Comment: GPIO_PORTE_DATA_R used once
+GPIO_PORTE_DEN_R 4002451C
+
+Symbol: GPIO_PORTE_DEN_R
+   Definitions
+      At line 16 in file Lab1.s
+   Uses
+      At line 52 in file Lab1.s
+Comment: GPIO_PORTE_DEN_R used once
+GPIO_PORTE_DIR_R 40024400
+
+Symbol: GPIO_PORTE_DIR_R
+   Definitions
+      At line 15 in file Lab1.s
+   Uses
+      At line 45 in file Lab1.s
+Comment: GPIO_PORTE_DIR_R used once
+SYSCTL_RCGCGPIO_R 400FE608
+
+Symbol: SYSCTL_RCGCGPIO_R
+   Definitions
+      At line 17 in file Lab1.s
+   Uses
+      At line 34 in file Lab1.s
+Comment: SYSCTL_RCGCGPIO_R used once
+7 symbols
+349 symbols in table
